@@ -20,14 +20,19 @@ var fragmentSource = `
     uniform sampler2D uRampTexture; // see https://datoviz.org/reference/colormaps/
     uniform sampler2D uTexture;
     float rampIndex = 94.0/255.0; // prefer cyclical colormaps 92-97
+    float shift = 0.76; // move blue to sea level
+    float interval = 10.0; // is this meters ?
+
     void main() {
-        float interval = 10.0; // is this meters ?
         vec4 color = texture2D(uTexture, vTexCoord);
-        float i = -10000.0 + (color.r * 255.0 * 256.0 + color.g * 255.0 + color.b);
-        float e = mod(i, interval) / interval;
+        float i = color.r * 255.0 * 256.0 + color.g * 255.0 + color.b;
+        float e = mod(i + shift * interval, interval) / interval;
         gl_FragColor = texture2D(uRampTexture, vec2(e, rampIndex));
     }           
 `;
+
+const image = new Image();
+image.src = "color_texture.png";
 
 const beforeMap = new mapboxgl.Map({
   container: "before",
@@ -53,10 +58,7 @@ beforeMap.on("load", () => {
   beforeMap.addLayer(customlayer);
 });
 
-function loadImage(gl, url) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
+function loadImage(gl, image) {
       const texture = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -64,11 +66,7 @@ function loadImage(gl, url) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      resolve(texture);
-    };
-    image.src = url;
-  });
-}
+};
 
 let program;
 function setupLayer(map, gl) {
@@ -101,7 +99,7 @@ function setupLayer(map, gl) {
 function render(gl, matrix, tiles) {
   gl.useProgram(program);
   gl.activeTexture(gl.TEXTURE0);
-  loadImage(gl, "color_texture.png");
+  loadImage(gl, image);
   gl.uniform1i(program.uRampTexture, 0);
 
   tiles.forEach((tile) => {
