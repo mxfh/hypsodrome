@@ -2,6 +2,8 @@ const PARAMS = {
   colorRamp: 94, // see https://datoviz.org/reference/colormaps/ prefer cyclical ones 92-97
   interval: 10,
   shift: 0.74, // offset for color ramp 94 @inteval 10 to have blue at sea level
+  animate: false,
+  speed: 0.3
 };
 
 mapboxgl.accessToken =
@@ -75,10 +77,25 @@ const f = pane.addFolder({
 });
 f.addInput(PARAMS, 'interval', { min: 1, max: 50, step: 1 });
 f.addInput(PARAMS, 'shift', { min: 0, max: 1 });
+f.addInput(PARAMS, 'animate', { label: 'Animate' });
+f.addInput(PARAMS, 'speed', { min:0.01, max: 1, step: 0.01 });
+
+
 
 pane.on('change', () => {
   beforeMap.triggerRepaint();
 });
+
+
+function updateShift() {
+  if (PARAMS.animate) {
+    PARAMS.shift = (PARAMS.shift + 0.02 * PARAMS.speed) % 1;
+    pane.refresh();
+  }
+  requestAnimationFrame(updateShift);
+}
+requestAnimationFrame(updateShift);
+
 
 
 function loadImage(gl, image) {
