@@ -1,3 +1,9 @@
+const PARAMS = {
+  colorRamp: 94, // see https://datoviz.org/reference/colormaps/ prefer cyclical ones 92-97
+  interval: 10,
+  shift: 0.74, // offset for color ramp 94 @inteval 10 to have blue at sea level
+};
+
 mapboxgl.accessToken =
   "pk.eyJ1IjoiZG5vbWFkYiIsImEiOiJjaW16aXFsZzUwNHJmdjdra3h0Nmd2cjY1In0.SqzkaKalXxQaPhQLjodQcQ";
 
@@ -17,17 +23,19 @@ var vertexSource = `
 var fragmentSource = `
     precision mediump float;
     varying vec2 vTexCoord;
-    uniform sampler2D uRampTexture; // see https://datoviz.org/reference/colormaps/
+    uniform sampler2D uRampTexture; 
     uniform sampler2D uTexture;
-    float rampIndex = 94.0/255.0; // prefer cyclical colormaps 92-97
-    float shift = 0.76; // move blue to sea level
-    float interval = 10.0; // is this meters ?
+    uniform float rampIndex; 
+    uniform float shift; 
+    uniform float interval;
+
+    float rampValue = rampIndex / 255.0;
 
     void main() {
         vec4 color = texture2D(uTexture, vTexCoord);
         float i = color.r * 255.0 * 256.0 + color.g * 255.0 + color.b;
         float e = mod(i + shift * interval, interval) / interval;
-        gl_FragColor = texture2D(uRampTexture, vec2(e, rampIndex));
+        gl_FragColor = texture2D(uRampTexture, vec2(e, rampValue));
     }           
 `;
 
@@ -57,6 +65,21 @@ beforeMap.on("load", () => {
   );
   beforeMap.addLayer(customlayer);
 });
+
+const pane = new Tweakpane.Pane();
+
+pane.addInput(PARAMS, 'colorRamp', { min: 0, max: 255, step: 1 });
+const f = pane.addFolder({
+  title: 'Interval',
+  expanded: true,
+});
+f.addInput(PARAMS, 'interval', { min: 1, max: 50, step: 1 });
+f.addInput(PARAMS, 'shift', { min: 0, max: 1 });
+
+pane.on('change', () => {
+  beforeMap.triggerRepaint();
+});
+
 
 function loadImage(gl, image) {
       const texture = gl.createTexture();
@@ -89,6 +112,10 @@ function setupLayer(map, gl) {
   program.uRampTexture = gl.getUniformLocation(program, "uRampTexture");
   program.uTexture = gl.getUniformLocation(program, "uTexture");
 
+  program.rampIndex= gl.getUniformLocation(program, "rampIndex");
+  program.shift = gl.getUniformLocation(program, "shift");
+  program.interval= gl.getUniformLocation(program, "interval");
+
   const vertexArray = new Float32Array([0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]);
 
   program.vertexBuffer = gl.createBuffer();
@@ -101,6 +128,9 @@ function render(gl, matrix, tiles) {
   gl.activeTexture(gl.TEXTURE0);
   loadImage(gl, image);
   gl.uniform1i(program.uRampTexture, 0);
+  gl.uniform1f(program.rampIndex, PARAMS.colorRamp);
+  gl.uniform1f(program.shift, PARAMS.shift);
+  gl.uniform1f(program.interval, PARAMS.interval);
 
   tiles.forEach((tile) => {
     if (!tile.texture) return;
