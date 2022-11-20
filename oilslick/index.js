@@ -78,7 +78,7 @@ const f = pane.addFolder({
 f.addInput(PARAMS, 'interval', { min: 1, max: 50, step: 1 });
 f.addInput(PARAMS, 'shift', { min: 0, max: 1 });
 f.addInput(PARAMS, 'animate', { label: 'Animate' });
-f.addInput(PARAMS, 'speed', { min:0.01, max: 1, step: 0.01 });
+f.addInput(PARAMS, 'speed', { min:-1, max: 1, step: 0.01 });
 
 
 
@@ -86,10 +86,9 @@ pane.on('change', () => {
   beforeMap.triggerRepaint();
 });
 
-
 function updateShift() {
   if (PARAMS.animate) {
-    PARAMS.shift = (PARAMS.shift + 0.02 * PARAMS.speed) % 1;
+    PARAMS.shift = ((PARAMS.shift + 0.02 * PARAMS.speed) % 1 + 1) % 1;
     pane.refresh();
   }
   requestAnimationFrame(updateShift);
