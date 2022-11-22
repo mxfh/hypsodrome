@@ -1,45 +1,10 @@
-const PARAMS = {
-  colorRamp: 94, // see https://datoviz.org/reference/colormaps/ prefer cyclical ones 92-97
-  interval: 10,
-  shift: 0.74, // offset for color ramp 94 @inteval 10 to have blue at sea level
-  animate: false,
-  speed: 0.3
-};
+import fragmentSource from './gl.fragment.js'
+import vertexSource from './gl.vertex.js'
+import {loadImage, setTextureParams} from './gl.helpers.js'
+import {setupUi, PARAMS} from './ui.js'
 
 mapboxgl.accessToken =
   "pk.eyJ1IjoiZG5vbWFkYiIsImEiOiJjaW16aXFsZzUwNHJmdjdra3h0Nmd2cjY1In0.SqzkaKalXxQaPhQLjodQcQ";
-
-var vertexSource = `
-    attribute vec2 aPos;
-    uniform mat4 uMatrix;
-    varying vec2 vTexCoord;
-
-    float Extent = 8192.0;
-
-    void main() {
-        vec4 a = uMatrix * vec4(aPos * Extent, 0, 1);
-        gl_Position = vec4(a.rgba);
-        vTexCoord = aPos;
-    }
-`;
-var fragmentSource = `
-    precision mediump float;
-    varying vec2 vTexCoord;
-    uniform sampler2D uRampTexture; 
-    uniform sampler2D uTexture;
-    uniform float rampIndex; 
-    uniform float shift; 
-    uniform float interval;
-
-    float rampValue = rampIndex / 255.0;
-
-    void main() {
-        vec4 color = texture2D(uTexture, vTexCoord);
-        float i = color.r * 255.0 * 256.0 + color.g * 255.0 + color.b;
-        float e = mod(i + shift * interval, interval) / interval;
-        gl_FragColor = texture2D(uRampTexture, vec2(e, rampValue));
-    }           
-`;
 
 const image = new Image();
 image.src = "color_texture.png";
@@ -68,46 +33,8 @@ beforeMap.on("load", () => {
   beforeMap.addLayer(customlayer);
 });
 
-const pane = new Tweakpane.Pane();
-
-pane.addInput(PARAMS, 'colorRamp', { min: 0, max: 255, step: 1 });
-const f = pane.addFolder({
-  title: 'Interval',
-  expanded: true,
-});
-f.addInput(PARAMS, 'interval', { min: 1, max: 50, step: 1 });
-f.addInput(PARAMS, 'shift', { min: 0, max: 1 });
-f.addInput(PARAMS, 'animate', { label: 'Animate' });
-f.addInput(PARAMS, 'speed', { min:-1, max: 1, step: 0.01 });
-
-
-
-pane.on('change', () => {
-  beforeMap.triggerRepaint();
-});
-
-function updateShift() {
-  if (PARAMS.animate) {
-    PARAMS.shift = ((PARAMS.shift + 0.02 * PARAMS.speed) % 1 + 1) % 1;
-    pane.refresh();
-  }
-  requestAnimationFrame(updateShift);
-}
-requestAnimationFrame(updateShift);
-
-
-
-function loadImage(gl, image) {
-      const texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-};
-
 let program;
+
 function setupLayer(map, gl) {
   const vertexShader = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vertexShader, vertexSource);
@@ -129,8 +56,11 @@ function setupLayer(map, gl) {
   program.uTexture = gl.getUniformLocation(program, "uTexture");
 
   program.rampIndex= gl.getUniformLocation(program, "rampIndex");
+  program.invert = gl.getUniformLocation(program, "invert");
   program.shift = gl.getUniformLocation(program, "shift");
   program.interval= gl.getUniformLocation(program, "interval");
+  program.seaLevel= gl.getUniformLocation(program, "seaLevel");
+  program.repeats= gl.getUniformLocation(program, "repeats");
 
   const vertexArray = new Float32Array([0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]);
 
@@ -144,21 +74,18 @@ function render(gl, matrix, tiles) {
   gl.activeTexture(gl.TEXTURE0);
   loadImage(gl, image);
   gl.uniform1i(program.uRampTexture, 0);
-  gl.uniform1f(program.rampIndex, PARAMS.colorRamp);
-  gl.uniform1f(program.shift, PARAMS.shift);
+  gl.uniform1f(program.rampIndex, PARAMS.colors / 255);
+  gl.uniform1f(program.invert, PARAMS.invert);
+  gl.uniform1f(program.shift, PARAMS.shift / 360);
   gl.uniform1f(program.interval, PARAMS.interval);
+  gl.uniform1f(program.seaLevel, PARAMS.seaLevel);
+  gl.uniform1f(program.repeats, PARAMS.repeats);
 
   tiles.forEach((tile) => {
     if (!tile.texture) return;
-
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, tile.texture.texture);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
+    setTextureParams(gl);
     gl.bindBuffer(gl.ARRAY_BUFFER, program.vertexBuffer);
     gl.enableVertexAttribArray(program.a_pos);
     gl.vertexAttribPointer(program.aPos, 2, gl.FLOAT, false, 0, 0);
@@ -187,3 +114,10 @@ const map = new mapboxgl.Compare(beforeMap, afterMap, container, {
 // Set this to enable comparing two maps by mouse movement:
 // mousemove: true
 });
+
+map.setSlider(document.body.clientWidth * 1);
+
+// Add UI
+
+setupUi();
+
