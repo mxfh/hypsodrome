@@ -1,4 +1,4 @@
-import CMAP_ATLAS from './cmap_atlas.js'
+import CMAP_ATLAS from './palettes/cmap_atlas.js'
 
 export const PARAMS = {
   colors: 94,
@@ -45,10 +45,7 @@ const fp = pane.addFolder({
   fa.addInput(PARAMS, 'animateSeaLevel', { label: 'SeaLevel' });
   fa.addInput(PARAMS, 'seaLevelSpeed', { min:-2, max: 2, step: 0.1, label: "Speed" });
   fa.addInput(PARAMS, 'maxSeaLevel', { min:0, max: 9000, step: 0.1, label: "max. Sea Level" });
-  pane.on('change', () => {
-    beforeMap.triggerRepaint();
-  });
-  
+    
   function updateShift() {
     if (PARAMS.animateShift) {
       PARAMS.shift = ((PARAMS.shift + PARAMS.shiftSpeed) % 360 + 360) % 360;
@@ -70,5 +67,7 @@ const fp = pane.addFolder({
     requestAnimationFrame(updateShift);
   }
   requestAnimationFrame(updateShift);
+
+  return pane;
 
 }

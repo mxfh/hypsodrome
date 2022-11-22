@@ -1,13 +1,13 @@
-import fragmentSource from './gl.fragment.js'
-import vertexSource from './gl.vertex.js'
-import {loadImage, setTextureParams} from './gl.helpers.js'
+import fragmentSource from './gl/fragment.js'
+import vertexSource from './gl/vertex.js'
+import {loadImage, setTextureParams} from './gl/helpers.js'
 import {setupUi, PARAMS} from './ui.js'
 
 mapboxgl.accessToken =
-  "pk.eyJ1IjoiZG5vbWFkYiIsImEiOiJjaW16aXFsZzUwNHJmdjdra3h0Nmd2cjY1In0.SqzkaKalXxQaPhQLjodQcQ";
+  "pk.eyJ1IjoibXhmaCIsImEiOiJjaXE5b2g2cjMwMDVraTNuczlpMjN3dWpqIn0.QDUPBG2py7JEHWMlkwPP_A";
 
 const image = new Image();
-image.src = "color_texture.png";
+image.src = "./palettes/color_texture.png";
 
 const beforeMap = new mapboxgl.Map({
   container: "before",
@@ -119,5 +119,8 @@ map.setSlider(document.body.clientWidth * 1);
 
 // Add UI
 
-setupUi();
+const pane = setupUi();
 
+pane.on('change', () => {
+  beforeMap.triggerRepaint();
+});

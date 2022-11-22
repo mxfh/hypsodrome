@@ -1,23 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset='utf-8' />
-    <title>Hypsogram</title>
-    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Dynamic Oilslick</title>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        </style>
+        
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.css" rel="stylesheet">
+<script src="/lib/tweakpane.min.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-compare/v0.4.0/mapbox-gl-compare.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-compare/v0.4.0/mapbox-gl-compare.css" type="text/css">
+<script src="/mapbox-tl.umd.js"></script>
+</head>
     <style>
         body {
-          margin:0;
-          padding:0;
+        overflow: hidden;
         }
-        #main {
-          position:absolute; top:0; bottom:0; width:100%;
-          background-image: url(https://api.mapbox.com/styles/v1/dnomadb/cju1el5dt14ff1fthtpj0fqli/static/-121.7465,46.8536,11,0,0/1280x800@2x?access_token=pk.eyJ1IjoiZG5vbWFkYiIsImEiOiJjaW16aXFsZzUwNHJmdjdra3h0Nmd2cjY1In0.SqzkaKalXxQaPhQLjodQcQ);
-          background-size: cover;
-          background-position: center;
+         
+        body * {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
         }
-    </style>
-</head>
-<body>
-  <div id="main"></div>
+         
+        .map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        }
+        </style>
+    <div id="comparison-container">
+        <div id="before" class="map"></div>
+        <div id="after" class="map"></div>
+        </div>
+    <script src="/main.js" type="module"></script>
 </body>
 </html>
